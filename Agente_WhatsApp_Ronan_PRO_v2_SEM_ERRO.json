@@ -1,0 +1,337 @@
+{
+  "name": "Agente_WhatsApp_Ronan_PRO_v2_SEM_ERRO",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        224
+      ],
+      "id": "878287e2-2e06-4a64-bed9-dcb584b322ea",
+      "webhookId": "caf6c595-c38e-481f-a717-7e59c603aab8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"body\"][\"Body\"]}}",
+              "value2": "1"
+            }
+          ]
+        }
+      },
+      "name": "IF: Digitou 1?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        224
+      ],
+      "id": "92c70975-fbe5-43bd-b48b-2eb3e40818ed"
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "={{$node[\"Webhook1\"].json[\"body\"][\"From\"]}}",
+        "message": "=Olá! Para buscar notícias, responda com os dados separados por vírgula:\n\nNome, Email, Cidade, Assunto, Quantidade\n\nExemplo: Ronan, ronan@email.com, Palmas, Copa, 5",
+        "options": {}
+      },
+      "name": "Twilio: Pedir Dados",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        64
+      ],
+      "id": "c8484401-e736-45a3-bb98-7aaedd35ac19",
+      "credentials": {
+        "twilioApi": {
+          "id": "P3f3Sz72W7O7GnIL",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"body\"][\"Body\"]}}",
+              "value2": "2"
+            },
+            {
+              "value1": "={{$json[\"body\"][\"Body\"].toLowerCase()}}",
+              "operation": "contains",
+              "value2": "sair"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "name": "IF: Sair ou Dados?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1888,
+        336
+      ],
+      "id": "ea49a241-ea64-43e3-a1a2-938c18150208"
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "={{$node[\"Webhook1\"].json[\"body\"][\"From\"]}}",
+        "message": "=Atendimento encerrado. Obrigado! 👋\nDigite 1 para iniciar uma nova busca.",
+        "options": {}
+      },
+      "name": "Twilio: Sair",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        272
+      ],
+      "id": "b5cbe2b5-17a9-47c4-a01e-ec5b5c660047",
+      "credentials": {
+        "twilioApi": {
+          "id": "P3f3Sz72W7O7GnIL",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.all()[0].json.body.Body || '';\nconst partes = body.split(',').map(p => p.trim());\n\n// Se o usuário pedir mais de 5, limitamos a 5 para evitar o erro de caracteres\nlet qtd = parseInt(partes[4]) || 3;\nif (qtd > 5) qtd = 5;\n\nreturn {\n  nome: partes[0] || 'Ronan',\n  email: partes[1] || 'N/A',\n  cidade: partes[2] || 'Palmas',\n  assunto: partes[3] || 'Notícias',\n  quantidade: qtd\n};"
+      },
+      "name": "Processar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        448
+      ],
+      "id": "dcef187c-cd67-42ca-827d-a2d35207fa00"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.bing.com/news/search?q={{$json[\"assunto\"]}}&format=rss",
+        "options": {}
+      },
+      "name": "RSS Bing",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        2336,
+        448
+      ],
+      "id": "3f16896d-558f-40cd-80a3-0f1f506c44d9"
+    },
+    {
+      "parameters": {
+        "maxItems": "={{$node[\"Processar Entrada\"].json[\"quantidade\"]}}"
+      },
+      "name": "Limit1",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        448
+      ],
+      "id": "d68e92e8-c0bc-46ce-8c2d-0e3c8f0e8f63"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "manchete",
+              "value": "={{$position + 1}}. *{{$json[\"title\"].substring(0, 100)}}*\n🔗 {{$json[\"link\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Manchete",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        2736,
+        448
+      ],
+      "id": "adacce9e-5f15-480e-ad95-5aa559b50458"
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "aggregation": "concatenate",
+              "field": "manchete",
+              "separateBy": "\n\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Summarize1",
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1,
+      "position": [
+        2944,
+        448
+      ],
+      "alwaysOutputData": true,
+      "id": "ae57f7a5-6f32-4452-934a-3d3d87fd745e"
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "={{$node[\"Webhook1\"].json[\"body\"][\"From\"]}}",
+        "message": "={{ \n  ('📰 Notícias para ' + $node[\"Processar Entrada\"].json[\"nome\"] + ' (' + $node[\"Processar Entrada\"].json[\"cidade\"] + '):\\n\\n' + $json[\"concatenated_manchete\"]).substring(0, 1590) \n}}",
+        "options": {}
+      },
+      "name": "Twilio: Enviar Noticia",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        3136,
+        448
+      ],
+      "id": "2d1b5e30-21d0-4331-a18e-a2786c6f2f96",
+      "credentials": {
+        "twilioApi": {
+          "id": "P3f3Sz72W7O7GnIL",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "IF: Digitou 1?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Digitou 1?": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Pedir Dados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Sair ou Dados?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Sair ou Dados?": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Sair",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Processar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Entrada": {
+      "main": [
+        [
+          {
+            "node": "RSS Bing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Bing": {
+      "main": [
+        [
+          {
+            "node": "Limit1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit1": {
+      "main": [
+        [
+          {
+            "node": "Set Manchete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Manchete": {
+      "main": [
+        [
+          {
+            "node": "Summarize1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize1": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Enviar Noticia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4f93c252-a413-480f-9496-4a7a609ca7b8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e261d839fa20b46cf8472bad9be9fba99c9820fb2037b911a0420b9d7d9b8f0c"
+  },
+  "id": "xPGpFBn14ZMr3nXu",
+  "tags": []
+}
